@@ -43,6 +43,7 @@ class Bootstrap extends \Yaf\Bootstrap_Abstract {
             ));
     }
 
+    /*
     public function _initJingdong() {
         if (Yaf\Application::app()->environ() == 'product') {
             define('JOS_ENV', 'product');
@@ -52,6 +53,7 @@ class Bootstrap extends \Yaf\Bootstrap_Abstract {
         define('JOS_REDIRECT_URI', $this->config->jingdong->redirect_uri);
         define('JOS_ACCESS_TOKEN', $this->config->jingdong->access_token);
     }
+     */
 
     public function _initRequest(Yaf\Dispatcher $dispatcher) {
         $dispatcher->setRequest(new Yaf\Request\Http());

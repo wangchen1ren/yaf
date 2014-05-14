@@ -30,7 +30,7 @@
     </head>
     <body>
 <h1><?php echo $e_class ?></h1>
-<pre class="strong"><span class="exception"><?php echo  $e_class; ?></span>: <span class="message"><?php echo $e->getMessage()?></span> in file <span class="file"><?php echo $e->getFile()?></span> at line <span class="line"><?php echo $e->getLine()?></span></pre>
+<pre class="strong"><span class="exception"><?php echo  $e_class; ?></span>: <span class="message"><?php echo $e->getCode() . " " . $e->getMessage()?></span> in file <span class="file"><?php echo $e->getFile()?></span> at line <span class="line"><?php echo $e->getLine()?></span></pre>
 
 <div id="traces">
     <h2>Exception Trace</h2>

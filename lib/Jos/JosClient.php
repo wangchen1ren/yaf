@@ -2,15 +2,21 @@
 
 namespace Jos;
 
+/*
 defined('JOS_ENV') || define('JOS_ENV', 'sandbox');
 
 defined('JOS_APP_KEY') || define('JOS_APP_KEY', '');
 defined('JOS_SECRET_KEY') || define('JOS_SECRET_KEY', '');
 defined('JOS_REDIRECT_URI') || define('JOS_REDIRECT_URI', '');
 defined('JOS_ACCESS_TOKEN') || define('JOS_ACCESS_TOKEN', null);
+ */
 
 class JosClient {
 
+  const CSRF_TOKEN = 1;
+  const CSRF_AUTHORIZE = 2;
+
+  public static $conf;
   protected static $_instance;
   protected $_appkey;
   protected $_secretKey;
@@ -24,17 +30,28 @@ class JosClient {
 
   public static function getInstance() {
     if (! isset(self::$_instance)) {
+      self::_init();
       self::$_instance = new JosClient();
-      self::$_instance->_init();
+      self::$_instance->reload();
     }
     return self::$_instance;
   }
 
-  private function _init() {
-    $this->_appkey = JOS_APP_KEY;
-    $this->_secretKey= JOS_SECRET_KEY;
-    $this->redirectUri = JOS_REDIRECT_URI;
-    if (JOS_ENV != 'product') {
+  private static function _init() {
+    self::$conf = \Yaf\Registry::get("config")->jingdong;
+  }
+
+  public function getConf() {
+    $config = self::$conf;
+    return $config->toArray();
+  }
+
+  public function reload() {
+    $this->_appkey = self::$conf->appkey;
+    $this->_secretKey= self::$conf->secretkey;
+    $this->_redirectUri = self::$conf->redirect_uri;
+    $this->_access_token = self::$conf->access_token;
+    if (\Yaf\Application::app()->environ() != 'product') {
       $this->_sandbox();
     }
   }
@@ -44,6 +61,58 @@ class JosClient {
     $this->_tokenUrl = 'http://auth.sandbox.360buy.com/oauth/token';
     $this->_gatewayUrl = 'http://gw.api.sandbox.360buy.com/routerjson';
   }
+
+  public function getAuthUrl() {
+    $param = array(
+      'response_type' => 'code',
+      'client_id' => $this->_appkey,
+      'redirect_uri' => $this->_redirectUri,
+      'state' => $this->mkCsrf(self::CSRF_AUTHORIZE),
+      'scope' => 'read',
+    );
+    return $this->_authorizeUrl . '?' . http_build_query($param);
+  }
+
+  public function refreshAccessToken() {
+    $param = array(
+      'grant_type' => 'refresh_token',
+      'client_id' => $this->_appkey,
+      'client_secret' => $this->_secretKey,
+      'refresh_token' => $this->_access_token,
+      'redirect_uri' => $this->_redirectUri,
+      'scope' => 'read',
+      'state' => $this->mkCsrf(self::CSRF_TOKEN)
+    );
+    $json = $this->curl($this->_tokenUrl, $param);
+    $json = iconv('gbk', 'utf-8', $json);
+    $json = json_decode($json);
+    if (isset($json->code) && isset($json->error_description)) {
+      throw new \Jos\Exception\JosApiException($json->error_description, intval($json->code));
+    }
+    self::$conf->access_token = $json->access_token;
+    return $json;
+  }
+
+  public function fetchAccessToken($code) {   
+    $param = array(
+      'grant_type' => 'authorization_code',
+      'client_id' => $this->_appkey,
+      'client_secret' => $this->_secretKey,
+      'code' => $code,
+      'redirect_uri' => $this->_redirectUri,
+      'scope' => 'read',
+      'state' => $this->mkCsrf(self::CSRF_TOKEN)
+    );  
+    $json = $this->curl($this->_tokenUrl, $param);
+    $json = iconv('gbk', 'utf-8', $json);
+    $json = json_decode($json);
+    if (isset($json->code) && isset($json->error_description)) {
+      throw new \Jos\Exception\JosApiException($json->error_description, intval($json->code));
+    }
+    self::$conf->access_token = $json->access_token;
+    return $json;
+  }
+
 
   public function getVersion() {
     return '20131216';
@@ -65,12 +134,7 @@ class JosClient {
     $sysParams['app_key'] = $this->_appkey;
     $sysParams['v'] = $this->_apiVersion;
     $sysParams['method'] = $request->getApiMethod();
-    if (JOS_ACCESS_TOKEN != null) {
-      $session = JOS_ACCESS_TOKEN;
-    }
-    if ($session !== null) {
-      $sysParams['access_token'] = $session;
-    }
+    $session = $this->_access_token;
     $sysParams['timestamp'] = date('Y-m-d H:i:s');
 
     // 获取业务参数
@@ -198,4 +262,13 @@ class JosClient {
     \curl_close($ch);
     return $reponse;
   }
+
+  private function mkCsrf ($key)
+  {
+    // TODO
+    // $v = uniqid('', true);
+    // $_SESSION['jos_' . $key] = $v;
+    return '';
+  }
+
 }

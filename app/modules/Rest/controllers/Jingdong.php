@@ -16,10 +16,14 @@ class JingdongController extends RestfulController {
     }
 
     public function authAction() {
+        $jos = \Jos\JosClient::getInstance();
+        $this->context = json_encode($jos->getConf());
     }
 
     public function refreshtokenAction() {
         $jos = \Jos\JosClient::getInstance();
+        $jos->refreshAccessToken();
+        $this->context = json_encode($jos->getConf());
     }
 
     public function fetchallAction() {
