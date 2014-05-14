@@ -17,6 +17,8 @@ class Bootstrap extends \Yaf\Bootstrap_Abstract {
 
     public function _initConfig(Yaf\Dispatcher $dispatcher) {
         $this->config = Yaf\Application::app()->getConfig();
+        Yaf\Registry::set('config', $this->config);
+        //\Yaf\Loader::import(APP_PATH . '/config/defines.inc.php');
     }
 
     /*
@@ -32,11 +34,28 @@ class Bootstrap extends \Yaf\Bootstrap_Abstract {
     }
 
     public function _initNamespaces(){
-        \Yaf\Loader::getInstance()->registerLocalNameSpace(array("Zend"));
+        //\Yaf\Loader::getInstance()->registerLocalNameSpace(array("Zend"));
+        \Yaf\Loader::getInstance()
+            ->registerLocalNameSpace(array(
+                'Zend',
+                'Jos',
+                'Mongo',
+            ));
+    }
+
+    public function _initJingdong() {
+        if (Yaf\Application::app()->environ() == 'product') {
+            define('JOS_ENV', 'product');
+        }
+        define('JOS_APP_KEY', $this->config->jingdong->appkey);
+        define('JOS_SECRET_KEY', $this->config->jingdong->secretkey);
+        define('JOS_REDIRECT_URI', $this->config->jingdong->redirect_uri);
+        define('JOS_ACCESS_TOKEN', $this->config->jingdong->access_token);
     }
 
     public function _initRequest(Yaf\Dispatcher $dispatcher) {
-        $dispatcher->setRequest(new Request());
+        $dispatcher->setRequest(new Yaf\Request\Http());
+        //$dispatcher->setRequest(new Request());
     }
 
     public function _initDatabase(Yaf\Dispatcher $dispatcher) {

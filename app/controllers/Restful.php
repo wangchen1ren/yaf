@@ -193,4 +193,7 @@ abstract class RestfulController extends ApplicationController
         $this->getView()->assign('index_url', $this->_index_url);
         return $this->_index_url;
     }
+
+    protected function getParams() {
+    }
 }
